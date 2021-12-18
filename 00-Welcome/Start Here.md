@@ -49,11 +49,3 @@ I will also be creating a folder to dump all my captured notes and books:
 1. Articles - [[Articles]]
 2. Books - [[Books archive]]
 3. Videos - [[Videos]]
-  
-  
-  
-  
-  
-  
-  
-  
