@@ -1,7 +1,6 @@
 
 export IP: 10.10.250.170
 
-===
 Deploy the Vulnerable Debian VM
 
 Prechecks:
